@@ -34,9 +34,9 @@ Here are a few projects I've worked on:
 - **Description**: Developed a machine learning model to predict house prices using various features.
 - **Technologies Used**: Python, Scikit-learn, Pandas, Matplotlib
 
-### [Project 2: Player Segmentation](https://github.com/yourusername/customer-segmentation)
-- **Description**: Performed Player segmentation using clustering algorithms.
-- **Technologies Used**: Python, Scikit-learn, Pandas, Seaborn, K-Means
+### [Project 2: Walmart Sales Prediction](https://github.com/yourusername/customer-segmentation)
+- **Description**: This project involves predicting sales for Walmart stores considering various factors like holiday markdown events. The objective is to help Walmart optimize inventory management and improve supply chain operations by accurately forecasting sales. 
+- **Technologies Used**: Python, Time-series analysis
 
 ### [Project 3: Netflix Recommendation System](https://github.com/yourusername/sentiment-analysis)
 - **Description**: This project involves creating a recommendation system for Netflix users. The goal is to predict what movies TV shows a user might like based on their viewing history and ratings. I utilized collaborative filtering techniques and matrix factorization methods such as Singular Value Decomposition (SVD) to build the recommendation engine. This project helped me understand the practical applications of machine learning algorithms in personalizing user experiences.
