@@ -30,7 +30,7 @@ I'm a fresher in Data Science and Machine Learning. I have hands-on experience w
 
 Here are a few projects I've worked on:
 
-### [Project 1: Predicting House Prices](https://github.com/yourusername/house-prices-prediction)
+### [Project 1: Predicting House Prices](https://github.com/atasighosh/Atasi.git)
 - **Description**: Developed a machine learning model to predict house prices using various features.
 - **Technologies Used**: Python, Scikit-learn, Pandas, Matplotlib
 
