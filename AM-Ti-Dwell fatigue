@@ -1,0 +1,1272 @@
+Sample="/content/drive/My Drive/data.csv"
+df=pd.read_csv(Sample)
+
+import pandas as pd
+import numpy as np
+from pandas.plotting import scatter_matrix
+import matplotlib.pyplot as plt
+
+import sklearn
+from sklearn import model_selection
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score,r2_score
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC, SVR
+from sklearn.linear_model import Ridge
+
+
+df=pd.read_excel("data_2.xlsx")
+df_1=df.drop("Alloy",axis=1)
+df_1.head()
+
+x=df_1.drop('Debit',axis=1)
+y=df_1['Debit']
+seed=7
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.33,random_state=seed)
+
+## Building Models
+
+
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+
+# Load dataset
+data = pd.read_excel("data_2.xlsx")
+
+# Encode categorical variable
+data["Alloy"] = LabelEncoder().fit_transform(data["Alloy"])
+
+# Define features and target
+X = data.drop(columns=["Debit"])
+y = data["Debit"]
+
+# Scale features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Generate synthetic data using Gaussian noise
+np.random.seed(42)
+num_synthetic = 200
+synthetic_X = np.tile(X_scaled, (num_synthetic // len(X_scaled) + 1, 1))[:num_synthetic]
+synthetic_noise = np.random.normal(0, 0.1, synthetic_X.shape)
+synthetic_X += synthetic_noise
+
+# Add variation to target variable
+synthetic_y = np.tile(y, num_synthetic // len(y) + 1)[:num_synthetic] + np.random.normal(0, 0.5, num_synthetic)
+
+# Inverse scale to original units
+synthetic_df = pd.DataFrame(scaler.inverse_transform(synthetic_X), columns=X.columns)
+synthetic_df["Debit"] = synthetic_y
+
+# Save dataset
+output_path = "synthetic_data_raw.csv"
+synthetic_df.to_csv(output_path, index=False)
+
+output_path
+
+
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
+
+# Load dataset
+data = pd.read_excel("synthetic_100points.xlsx")
+
+# Encode categorical variable
+data["Alloy"] = LabelEncoder().fit_transform(data["Alloy"])
+
+# Define features and target
+X = data.drop(columns=["Debit"])
+
+# *** FIX *** Drop columns with NaN values
+X = X.drop(columns=['YS', 'UTS'])
+
+# Standardize
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# --- Compute Covariance Matrix ---
+cov_matrix = np.cov(X_scaled.T)
+cov_df = pd.DataFrame(cov_matrix, index=X.columns, columns=X.columns)
+
+print("Covariance Matrix:\n", cov_df)
+
+# --- Apply PCA ---
+pca = PCA()
+pca.fit(X_scaled)
+
+# Explained variance (eigenvalues)
+print("\nExplained variance (eigenvalues):", pca.explained_variance_)
+print("Explained variance ratio:", pca.explained_variance_ratio_)
+
+# --- Covariance Matrix and PCA Visualization ---
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
+
+# --- Step 1: Load dataset ---
+data = pd.read_excel("synthetic_100points.xlsx")
+
+# Encode categorical variable
+data["Alloy"] = LabelEncoder().fit_transform(data["Alloy"])
+
+# Define features (drop target)
+X = data.drop(columns=["Debit"])
+
+# *** FIX *** Drop columns with NaN values
+X = X.drop(columns=['YS', 'UTS'])
+
+# --- Step 2: Standardize the data ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# --- Step 3: Compute covariance matrix ---
+cov_matrix = np.cov(X_scaled.T)
+cov_df = pd.DataFrame(cov_matrix, index=X.columns, columns=X.columns)
+
+# --- Step 4: Visualize covariance matrix as heatmap ---
+plt.figure(figsize=(12, 10))
+sns.heatmap(cov_df, cmap="coolwarm", annot=False)
+plt.title("Feature Covariance Matrix (Standardized Data)", fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# --- Step 5: PCA analysis ---
+pca = PCA()
+pca.fit(X_scaled)
+
+# Explained variance (eigenvalues)
+explained_var = pca.explained_variance_
+explained_ratio = pca.explained_variance_ratio_
+
+# --- Step 6: Plot explained variance ratio ---
+
+plt.figure(figsize=(9, 6))
+
+# Bar chart for individual explained variance ratio
+plt.bar(range(1, len(explained_ratio) + 1),
+        explained_ratio,
+        alpha=0.6,
+        label='Individual Explained Variance Ratio',
+        color='skyblue')
+plt.plot(np.cumsum(explained_ratio), marker='o', linestyle='-', color='b')
+plt.xlabel("Number of Principal Components")
+plt.ylabel("Cumulative Explained Variance")
+plt.title("Explained Variance by PCA Components")
+plt.grid(True)
+plt.show()
+
+# --- Step 7: Optional: print key outputs ---
+print("\nCovariance Matrix (first few rows):")
+print(cov_df.round(3).head())
+
+print("\nExplained Variance (Eigenvalues):")
+print(np.round(explained_var, 4))
+
+print("\nExplained Variance Ratio:")
+print(np.round(explained_ratio, 4))
+
+# --- PCA Covariance Matrix + Combined Explained Variance Visualization ---
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
+
+# --- Step 1: Load dataset ---
+data = pd.read_excel("new_data.xlsx")
+
+# Encode categorical variable
+#data["Alloy"] = LabelEncoder().fit_transform(data["Alloy"])
+
+# Define features (drop target)
+X = data.drop(columns=["Debit", "Alloy"])
+
+# *** FIX *** Drop columns with NaN values
+#X = X.drop(columns=['YS', 'UTS'])
+
+# --- Step 2: Standardize the data ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# --- Step 3: Compute covariance matrix ---
+cov_matrix = np.cov(X_scaled.T)
+cov_df = pd.DataFrame(cov_matrix, index=X.columns, columns=X.columns)
+
+# --- Step 4: Visualize covariance matrix as heatmap ---
+plt.figure(figsize=(12, 10))
+sns.heatmap(cov_df, cmap="coolwarm", annot=False)
+plt.title("Feature Covariance Matrix (Standardized Data)", fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# --- Step 5: PCA analysis ---
+pca = PCA()
+pca.fit(X_scaled)
+
+explained_var = pca.explained_variance_
+explained_ratio = pca.explained_variance_ratio_
+cumulative_ratio = np.cumsum(explained_ratio)
+
+# --- Step 6: Combined bar + line chart ---
+plt.figure(figsize=(9, 6))
+
+# Bar chart for individual explained variance ratio
+plt.bar(range(1, len(explained_ratio) + 1),
+        explained_ratio,
+        alpha=0.6,
+        label='Individual Explained Variance Ratio',
+        color='skyblue')
+
+# Line chart for cumulative variance
+plt.plot(range(1, len(cumulative_ratio) + 1),
+         cumulative_ratio,
+         marker='o',
+         color='darkblue',
+         label='Cumulative Explained Variance')
+
+# Aesthetic labels
+plt.xlabel("Principal Component Number", fontsize=12)
+plt.ylabel("Explained Variance Ratio", fontsize=12)
+plt.title("PCA Explained Variance (Individual + Cumulative)", fontsize=14)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# --- Step 7: Display summary ---
+print("\nCovariance Matrix (first few rows):")
+print(cov_df.round(3).head())
+
+print("\nExplained Variance (Eigenvalues):")
+print(np.round(explained_var, 4))
+
+print("\nExplained Variance Ratio:")
+print(np.round(explained_ratio, 4))
+
+print("\nCumulative Explained Variance Ratio:")
+print(np.round(cumulative_ratio, 4))
+
+# --- Compare Model Performance: With vs Without PCA ---
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# --- Step 1: Load dataset ---
+data = pd.read_excel("dwell_fatigue_dataset_template_1.xlsx")
+
+# --- Step 2: Define features and target ---
+X = data.drop(columns=["Dwell Debit", "Alloy"])
+y = data["Dwell Debit"]
+X.describe().T
+
+# --- Compare Model Performance: With vs Without PCA ---
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# --- Step 1: Load dataset ---
+data = pd.read_excel("new_data.xlsx")
+
+# --- Step 2: Define features and target ---
+X = data.drop(columns=["Debit", "Alloy"])
+y = data["Debit"]
+
+# --- Step 3: Standardize features ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+np.random.seed(42)
+num_synthetic = 200  # target dataset size
+
+# Tile and add Gaussian noise
+synthetic_X = np.tile(X_scaled, (num_synthetic // len(X_scaled) + 1, 1))[:num_synthetic]
+synthetic_X += np.random.normal(0, 0.1, synthetic_X.shape)
+synthetic_y = np.tile(y, num_synthetic // len(y) + 1)[:num_synthetic] + np.random.normal(0, 0.5, num_synthetic)
+
+# --- Step 4: PCA (retain 95% variance) ---
+pca_pipeline = Pipeline([
+    ('imputer_synthetic', SimpleImputer(strategy='mean')),
+    ('pca', PCA(n_components=0.95, random_state=42))
+])
+
+X_pca = pca_pipeline.fit_transform(synthetic_X)
+print(f"PCA reduced features from {X.shape[1]} → {X_pca.shape[1]}")
+
+# --- Step 5: Train-test split ---
+X_train, X_test, y_train, y_test = train_test_split(
+    synthetic_X, synthetic_y, test_size=0.3, random_state=42
+)
+X_train_pca, X_test_pca, y_train_pca, y_test_pca = train_test_split(
+    X_pca, synthetic_y, test_size=0.3, random_state=42
+)
+
+# --- Step 6: Define models ---
+models = {
+    "Linear Regression": LinearRegression(),
+    #"Decision Tree": DecisionTreeRegressor(random_state=42),
+    "Random Forest": RandomForestRegressor(random_state=42, n_estimators=200),
+    "AdaBoost": AdaBoostRegressor(random_state=42, n_estimators=200),
+    "XGBoost": XGBRegressor(random_state=42, n_estimators=200, learning_rate=0.05),
+    "SVR": SVR(kernel='rbf', C=10, epsilon=0.1)
+}
+
+# --- Step 7: Evaluate models with and without PCA ---
+results = []
+imputer_no_pca = SimpleImputer(strategy='mean')
+
+for name, model in models.items():
+    # --- Without PCA ---
+    X_train_imputed = imputer_no_pca.fit_transform(X_train)
+    X_test_imputed = imputer_no_pca.transform(X_test)
+
+    model.fit(X_train_imputed, y_train)
+    y_pred = model.predict(X_test_imputed)
+    r2_no = r2_score(y_test, y_pred)
+    rmse_no = np.sqrt(mean_squared_error(y_test, y_pred))
+
+    # --- With PCA ---
+    model.fit(X_train_pca, y_train_pca)
+    y_pred_pca = model.predict(X_test_pca)
+    r2_pca = r2_score(y_test_pca, y_pred_pca)
+    rmse_pca = np.sqrt(mean_squared_error(y_test_pca, y_pred_pca))
+
+    results.append([name, r2_no, rmse_no, r2_pca, rmse_pca])
+
+# --- Step 8: Results DataFrame ---
+results_df = pd.DataFrame(
+    results,
+    columns=["Model", "R² Without PCA", "RMSE Without PCA", "R² With PCA", "RMSE With PCA"]
+).sort_values(by="R² Without PCA", ascending=False)
+
+print("\n=== Model Performance Comparison (With vs Without PCA) ===")
+display(results_df)
+
+# --- Step 9: Visualization ---
+plt.figure(figsize=(10, 6))
+bar_height = 0.35
+x = np.arange(len(results_df))
+
+plt.barh(x - bar_height/2, results_df["R² Without PCA"], height=bar_height, label="Without PCA", color="mediumseagreen")
+plt.barh(x + bar_height/2, results_df["R² With PCA"], height=bar_height, label="With PCA", color="lightcoral")
+
+plt.yticks(x, results_df["Model"])
+plt.xlabel("R² Score", fontsize=12)
+plt.title("Model Performance Comparison: With vs Without PCA", fontsize=14)
+plt.legend()
+plt.grid(True, axis="y", linestyle="--", alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+# --- Step 10: Save results ---
+results_df.to_excel("model_comparison_pca_vs_no_pca.xlsx", index=False)
+print("\nResults saved as 'model_comparison_pca_vs_no_pca.xlsx'")
+
+
+# --- Compare Model Performance: With vs Without PCA ---
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# --- Step 1: Load dataset ---
+data = pd.read_excel("new_data.xlsx")
+
+# --- Step 2: Define features and target ---
+X = data.drop(columns=["Debit", "Alloy"])
+y = data["Debit"]
+
+# --- Step 3: Standardize features ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+np.random.seed(42)
+num_synthetic = 200  # target dataset size
+
+# Tile and add Gaussian noise
+synthetic_X = np.tile(X_scaled, (num_synthetic // len(X_scaled) + 1, 1))[:num_synthetic]
+synthetic_X += np.random.normal(0, 0.1, synthetic_X.shape)
+synthetic_y = np.tile(y, num_synthetic // len(y) + 1)[:num_synthetic] + np.random.normal(0, 0.5, num_synthetic)
+
+# --- Step 4: PCA (retain 95% variance) ---
+pca_pipeline = Pipeline([
+    ('imputer_synthetic', SimpleImputer(strategy='mean')),
+    ('pca', PCA(n_components=0.95, random_state=42))
+])
+
+X_pca = pca_pipeline.fit_transform(synthetic_X)
+pca_model = pca_pipeline.named_steps['pca']
+
+print(f"PCA reduced features from {X.shape[1]} → {X_pca.shape[1]}")
+
+# --- Step 4B: PCA Components and Explained Variance ---
+# Each component shows how much each original feature contributes to that PC
+pca_components = pd.DataFrame(
+    pca_model.components_,
+    columns=X.columns,
+    index=[f"PC{i+1}" for i in range(pca_model.n_components_)]
+)
+
+# Explained variance ratio per component
+explained_variance = pd.DataFrame({
+    "Principal Component": [f"PC{i+1}" for i in range(pca_model.n_components_)],
+    "Explained Variance Ratio": pca_model.explained_variance_ratio_
+})
+
+# Save PCA details
+with pd.ExcelWriter("pca_components_and_variance.xlsx") as writer:
+    pca_components.to_excel(writer, sheet_name="PCA_Components")
+    explained_variance.to_excel(writer, sheet_name="Explained_Variance", index=False)
+
+print("\nPCA components and explained variance saved as 'pca_components_and_variance.xlsx'")
+
+# --- Step 5: Train-test split ---
+X_train, X_test, y_train, y_test = train_test_split(
+    synthetic_X, synthetic_y, test_size=0.3, random_state=42
+)
+X_train_pca, X_test_pca, y_train_pca, y_test_pca = train_test_split(
+    X_pca, synthetic_y, test_size=0.3, random_state=42
+)
+
+# --- Step 6: Define models ---
+models = {
+    "Linear Regression": LinearRegression(),
+    "Random Forest": RandomForestRegressor(random_state=42, n_estimators=200),
+    "AdaBoost": AdaBoostRegressor(random_state=42, n_estimators=200),
+    "XGBoost": XGBRegressor(random_state=42, n_estimators=200, learning_rate=0.05),
+    "SVR": SVR(kernel='rbf', C=10, epsilon=0.1)
+}
+
+# --- Step 7: Evaluate models with and without PCA ---
+results = []
+imputer_no_pca = SimpleImputer(strategy='mean')
+
+for name, model in models.items():
+    # --- Without PCA ---
+    X_train_imputed = imputer_no_pca.fit_transform(X_train)
+    X_test_imputed = imputer_no_pca.transform(X_test)
+
+    model.fit(X_train_imputed, y_train)
+    y_pred = model.predict(X_test_imputed)
+    r2_no = r2_score(y_test, y_pred)
+    rmse_no = np.sqrt(mean_squared_error(y_test, y_pred))
+
+    # --- With PCA ---
+    model.fit(X_train_pca, y_train_pca)
+    y_pred_pca = model.predict(X_test_pca)
+    r2_pca = r2_score(y_test_pca, y_pred_pca)
+    rmse_pca = np.sqrt(mean_squared_error(y_test_pca, y_pred_pca))
+
+    results.append([name, r2_no, rmse_no, r2_pca, rmse_pca])
+
+# --- Step 8: Results DataFrame ---
+results_df = pd.DataFrame(
+    results,
+    columns=["Model", "R² Without PCA", "RMSE Without PCA", "R² With PCA", "RMSE With PCA"]
+).sort_values(by="R² Without PCA", ascending=False)
+
+print("\n=== Model Performance Comparison (With vs Without PCA) ===")
+display(results_df)
+
+# --- Step 9: Visualization ---
+plt.figure(figsize=(10, 6))
+bar_height = 0.35
+x = np.arange(len(results_df))
+
+plt.barh(x - bar_height/2, results_df["R² Without PCA"], height=bar_height, label="Without PCA", color="mediumseagreen")
+plt.barh(x + bar_height/2, results_df["R² With PCA"], height=bar_height, label="With PCA", color="lightcoral")
+
+plt.yticks(x, results_df["Model"])
+plt.xlabel("R² Score", fontsize=12)
+plt.title("Model Performance Comparison: With vs Without PCA", fontsize=14)
+plt.legend()
+plt.grid(True, axis="y", linestyle="--", alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+# --- Step 10: Save results ---
+results_df.to_excel("model_comparison_pca_vs_no_pca.xlsx", index=False)
+print("\nResults saved as 'model_comparison_pca_vs_no_pca.xlsx'")
+
+
+# --- PCA Coefficient (Feature Loading) Analysis ---
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1️⃣ Load dataset
+#file_path = "new_data.xlsx"   # <-- Replace with your file path
+file_path = "dwell_fatigue_dataset_template_new.xlsx"   # <-- Replace with your file path
+df = pd.read_excel(file_path)
+
+# 2️⃣ Select only numeric columns (ignore text columns like 'Alloy')
+numeric_df = df.select_dtypes(include=['number'])
+
+# 3️⃣ Standardize the numeric data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(numeric_df)
+
+# 4️⃣ Perform PCA
+pca = PCA()
+pca.fit(X_scaled)
+
+# 5️⃣ Create a DataFrame of PCA coefficients (feature loadings)
+loadings = pca.components_.T
+loadings_df = pd.DataFrame(
+    loadings,
+    columns=[f'PC{i+1}' for i in range(loadings.shape[1])],
+    index=numeric_df.columns
+)
+
+# 6️⃣ Display explained variance ratio
+explained_variance = pca.explained_variance_ratio_
+print("Explained Variance Ratio per Principal Component:")
+print(explained_variance.round(3))
+
+# 7️⃣ Plot heatmap of the first few principal components
+plt.figure(figsize=(12, 8))
+sns.heatmap(loadings_df.iloc[:, :5], annot=True, cmap="coolwarm", center=0)
+plt.title("PCA Coefficients (Feature Loadings) - First 5 Components")
+plt.xlabel("Principal Components")
+plt.ylabel("Features")
+plt.tight_layout()
+plt.show()
+
+# 8️⃣ Save PCA coefficients to Excel
+output_path = "PCA_feature_coefficients.xlsx"
+loadings_df.to_excel(output_path)
+print(f"\n✅ PCA coefficients saved to: {output_path}")
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Example data (replace with your own)
+# y_test = np.array([3.2, 2.8, 4.5, 3.6, 5.0, 4.2, 2.9, 3.8, 4.7, 5.1])
+# y_pred = np.array([3.0, 3.1, 4.3, 3.7, 4.8, 4.1, 2.7, 3.9, 4.6, 5.3])
+
+# Calculate performance metrics
+r2 = r2_score(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred_pca))
+
+# Define main diagonal and ±10% boundaries
+min_val = min(y_test.min(), y_pred_pca.min())
+max_val = max(y_test.max(), y_pred_pca.max())
+line = np.linspace(min_val, max_val, 200)
+upper_bound = line * 1.10
+lower_bound = line * 0.90
+
+# Create plot
+plt.figure(figsize=(8, 8))
+plt.scatter(y_test, y_pred_pca, color='royalblue', edgecolor='k', alpha=0.8, s=70, label='Data points')
+plt.plot(line, line, 'r--', linewidth=2, label='Ideal fit (y = x)')
+
+# Fill between boundary lines
+plt.fill_between(line, lower_bound, upper_bound, color='green', alpha=0.15, label='±10% boundary')
+
+# Add boundary lines
+plt.plot(line, upper_bound, 'g--', linewidth=1.2)
+plt.plot(line, lower_bound, 'g--', linewidth=1.2)
+
+# Labels and title
+plt.xlabel('Actual Values (y_test)', fontsize=12)
+plt.ylabel('Predicted Values (y_pred_pca)', fontsize=12)
+plt.title('Actual vs Predicted Values with ±10% Boundaries', fontsize=14)
+plt.legend()
+plt.grid(True, linestyle=':')
+plt.axis('equal')
+
+# Add R² and RMSE text box
+textstr = f"$R^2 = {r2:.3f}$\nRMSE = {rmse:.3f}"
+plt.text(0.05, 0.95, textstr, transform=plt.gca().transAxes,
+         fontsize=12, verticalalignment='top',
+         bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.5))
+
+# Show plot
+plt.show()
+
+import seaborn as sns
+plt.figure(figsize=(6,4))
+sns.boxplot(y=data["Dwell Debit"])
+plt.show()
+
+import pandas as pd
+import numpy as np
+
+# === 1. Load the original data ===
+file_path = "new_data.xlsx"   # your input file
+data = pd.read_excel(file_path)
+
+print(f"Original dataset shape: {data.shape}")
+
+# === 2. Define how many total samples you want ===
+target_size = 200
+current_size = len(data)
+needed = target_size - current_size
+
+if needed <= 0:
+    print("Dataset already has 100 or more samples. No augmentation needed.")
+else:
+    # === 3. Generate synthetic samples ===
+    synthetic_samples = []
+
+    for _ in range(needed):
+        # Randomly pick a row to base the synthetic data on
+        base_row = data.sample(n=1).iloc[0]
+
+        # Add Gaussian noise to numeric columns only
+        new_row = base_row.copy()
+        for col in data.columns:
+            if np.issubdtype(data[col].dtype, np.number):
+                noise = np.random.normal(0, 0.05 * data[col].std())  # 5% std-based noise
+                new_row[col] = base_row[col] + noise
+
+        synthetic_samples.append(new_row)
+
+    synthetic_df = pd.DataFrame(synthetic_samples)
+
+    # === 4. Combine original and synthetic data ===
+    augmented_data = pd.concat([data, synthetic_df], ignore_index=True)
+    print(f"Augmented dataset shape: {augmented_data.shape}")
+
+    # === 5. Save to Excel ===
+    augmented_data.to_excel("new_data_syn.xlsx", index=False)
+    print("Synthetic dataset saved as 'new_data_syn.xlsx'.")
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+import pandas as pd
+
+# 1. Load sample data
+data = pd.read_excel("dwell_fatigue_dataset_template_1_syn.xlsx")
+
+# *** FIX *** Select the column you want to analyze (replace 'Debit' with your desired column)
+column_to_analyze = 'Dwell Debit'
+numeric_data = data[column_to_analyze].dropna() # Drop NaN values to ensure calculations are correct
+
+# 2. Calculate the confidence interval for the mean
+confidence_level = 0.95  # 95% confidence interval
+alpha = 1 - confidence_level
+z_critical = norm.ppf(1 - alpha / 2)  # Z-score for the given confidence level
+
+sample_mean = np.mean(numeric_data)
+sample_std = np.std(numeric_data, ddof=1)  # Use ddof=1 for sample standard deviation
+sample_size = len(numeric_data) # *** FIX *** Use the actual number of samples
+
+standard_error = sample_std / np.sqrt(sample_size)
+
+margin_of_error = z_critical * standard_error
+confidence_interval_lower = sample_mean - margin_of_error
+confidence_interval_upper = sample_mean + margin_of_error
+
+# 3. Plot the distribution of the selected numeric data
+plt.figure(figsize=(10, 6))
+plt.hist(numeric_data, bins=10, density=True, alpha=0.6, color='g', label='Sample Data Histogram') # Reduced bins for small sample size
+
+# Plot a normal distribution curve with the sample mean and std for comparison
+xmin, xmax = plt.xlim()
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, sample_mean, sample_std)
+plt.plot(x, p, 'k', linewidth=2, label='Fitted Normal Distribution')
+
+# 4. Add the confidence interval to the plot
+plt.axvline(confidence_interval_lower, color='r', linestyle='--', label=f'{confidence_level*100}% CI Lower Bound')
+plt.axvline(confidence_interval_upper, color='r', linestyle='--', label=f'{confidence_level*100}% CI Upper Bound')
+plt.fill_between(x, 0, p, where=(x >= confidence_interval_lower) & (x <= confidence_interval_upper),
+                 color='red', alpha=0.2, label='Confidence Interval Region')
+
+
+plt.title(f'Distribution and {confidence_level*100}% Confidence Interval for {column_to_analyze}')
+plt.xlabel(column_to_analyze)
+plt.ylabel('Density')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# ======================================================
+# Deep Learning Model to Predict 'Debit' from Excel Data
+# ======================================================
+
+# Install dependencies (only needed once)
+# !pip install tensorflow pandas scikit-learn openpyxl
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_absolute_error
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# ------------------------------------------------------
+# 1. Load dataset
+# ------------------------------------------------------
+# Replace with your file path if not using Colab
+# Example: df = pd.read_excel("23datapoints_full.xlsx")
+df = pd.read_excel("dwell_fatigue_dataset_template_1_syn.xlsx")
+
+# ------------------------------------------------------
+# 2. Data preprocessing
+# ------------------------------------------------------
+# Drop non-numeric identifiers and separate target
+X = df.drop(columns=["Dwell Debit", "Alloy"])
+y = df["Dwell Debit"]
+
+# Convert all data to numeric (in case of text)
+X = X.apply(pd.to_numeric, errors="coerce")
+
+# Fill missing values with column mean
+X = X.fillna(X.mean())
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Normalize features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# ------------------------------------------------------
+# 3. Build deep learning model
+# ------------------------------------------------------
+model = models.Sequential([
+    layers.Dense(128, activation='relu', input_shape=(X_train_scaled.shape[1],)),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(32, activation='relu'),
+    layers.Dense(1)  # regression output
+])
+
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+
+# ------------------------------------------------------
+# 4. Train model
+# ------------------------------------------------------
+history = model.fit(
+    X_train_scaled, y_train,
+    validation_split=0.2,
+    epochs=300,
+    batch_size=8,
+    verbose=1
+)
+
+# ------------------------------------------------------
+# 5. Evaluate performance
+# ------------------------------------------------------
+y_pred = model.predict(X_test_scaled).flatten()
+
+r2 = r2_score(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+
+print("\nModel Performance:")
+print(f"R² Score: {r2:.4f}")
+print(f"Mean Absolute Error: {mae:.4f}")
+
+# ------------------------------------------------------
+# 6. (Optional) Plot training history
+# ------------------------------------------------------
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10,5))
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.xlabel('Epoch')
+plt.ylabel('MSE Loss')
+plt.legend()
+plt.title('Training History')
+plt.show()
+
+
+# ======================================================
+# Deep Learning Model to Predict 'Debit' + Save & Visualize
+# ======================================================
+
+# !pip install tensorflow pandas scikit-learn openpyxl pydot graphviz
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error # Corrected import
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.utils import plot_model
+import matplotlib.pyplot as plt
+
+# ------------------------------------------------------
+# 1. Load dataset
+# ------------------------------------------------------
+df = pd.read_excel("dwell_fatigue_dataset_template_1_syn.xlsx", sheet_name="Sheet1")
+
+# ------------------------------------------------------
+# 2. Data preprocessing
+# ------------------------------------------------------
+X = df.drop(columns=["Dwell Debit", "Alloy"])  # remove target + categorical ID
+y = df["Dwell Debit"]
+
+# Ensure numeric data
+X = X.apply(pd.to_numeric, errors="coerce")
+X = X.fillna(X.mean())
+
+# Split train/test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Standardize features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# ------------------------------------------------------
+# 3. Build deep learning model
+# ------------------------------------------------------
+model = models.Sequential([
+    layers.Dense(128, activation='relu', input_shape=(X_train_scaled.shape[1],), name="Input_Layer"),
+    layers.Dense(64, activation='relu', name="Hidden_Layer_1"),
+    layers.Dense(32, activation='relu', name="Hidden_Layer_2"),
+    layers.Dense(1, name="Output_Layer")  # Regression output
+])
+
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+
+# ------------------------------------------------------
+# 4. Train model
+# ------------------------------------------------------
+history = model.fit(
+    X_train_scaled, y_train,
+    validation_split=0.2,
+    epochs=300,
+    batch_size=8,
+    verbose=1
+)
+
+# ------------------------------------------------------
+# 5. Evaluate performance
+# ------------------------------------------------------
+y_pred = model.predict(X_test_scaled).flatten()
+
+r2 = r2_score(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test,y_pred)) # Corrected calculation
+
+print("\nModel Performance:")
+print(f"R² Score: {r2:.4f}")
+print(f"Mean Absolute Error: {mae:.4f}")
+print(f"Root Mean Square Error: {rmse:.4f}")
+
+# ------------------------------------------------------
+# 6. Save model and architecture
+# ------------------------------------------------------
+model.save("debit_predictor_model.h5")
+print("\n✅ Model saved as 'debit_predictor_model.h5'")
+
+# Export architecture diagram
+plot_model(model, to_file="model_architecture.png", show_shapes=True, show_layer_names=True)
+print("✅ Neural network architecture saved as 'model_architecture.png'")
+
+# ------------------------------------------------------
+# 7. Plot training history
+# ------------------------------------------------------
+plt.figure(figsize=(10,5))
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.xlabel('Epoch')
+plt.ylabel('MSE Loss')
+plt.title('Training History')
+plt.legend()
+plt.show()
+
+model.summary()
+
+# ======================================================
+# Improved Deep Learning Model for 'Dwell Debit' Prediction
+# ======================================================
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+import tensorflow as tf
+from tensorflow.keras import layers, models, callbacks, regularizers
+import matplotlib.pyplot as plt
+
+# ------------------------------------------------------
+# 1. Load dataset
+# ------------------------------------------------------
+df = pd.read_excel("dwell_fatigue_dataset_template_1_syn.xlsx", sheet_name="Sheet1")
+
+# ------------------------------------------------------
+# 2. Data preprocessing
+# ------------------------------------------------------
+X = df.drop(columns=["Dwell Debit", "Alloy"], errors="ignore")  # remove target + categorical ID
+y = df["Dwell Debit"]
+
+# Ensure numeric data
+X = X.apply(pd.to_numeric, errors="coerce")
+X = X.fillna(X.mean())
+
+# Split train/test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Standardize features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# ------------------------------------------------------
+# 3. Build improved deep learning model
+# ------------------------------------------------------
+def build_model(input_dim):
+    model = models.Sequential([
+        layers.Dense(256, activation='relu', input_shape=(input_dim,), kernel_regularizer=regularizers.l2(1e-4)),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+
+        layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l2(1e-4)),
+        layers.BatchNormalization(),
+        layers.Dropout(0.2),
+
+        layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l2(1e-4)),
+        layers.Dense(1)  # regression output
+    ])
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+                  loss='mse',
+                  metrics=['mae'])
+    return model
+
+model = build_model(X_train_scaled.shape[1])
+
+# ------------------------------------------------------
+# 4. Callbacks (early stopping & learning rate tuning)
+# ------------------------------------------------------
+early_stop = callbacks.EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
+reduce_lr = callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-6, verbose=1)
+
+# ------------------------------------------------------
+# 5. Train model
+# ------------------------------------------------------
+history = model.fit(
+    X_train_scaled, y_train,
+    validation_split=0.2,
+    epochs=500,
+    batch_size=8,
+    callbacks=[early_stop, reduce_lr],
+    verbose=1
+)
+
+# ------------------------------------------------------
+# 6. Evaluate performance
+# ------------------------------------------------------
+y_pred = model.predict(X_test_scaled).flatten()
+
+r2 = r2_score(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+print("\nModel Performance:")
+print(f"R² Score: {r2:.4f}")
+print(f"Mean Absolute Error: {mae:.4f}")
+print(f"Root Mean Square Error: {rmse:.4f}")
+
+# ------------------------------------------------------
+# 7. Save model and training plots
+# ------------------------------------------------------
+model.save("debit_predictor_model_improved.h5")
+print("\n✅ Model saved as 'debit_predictor_model_improved.h5'")
+
+plt.figure(figsize=(10,5))
+plt.plot(history.history['loss'], label='Train Loss', color='blue')
+plt.plot(history.history['val_loss'], label='Validation Loss', color='orange')
+plt.xlabel('Epoch')
+plt.ylabel('MSE Loss')
+plt.title('Training History (Improved Model)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import LeaveOneOut, cross_val_score
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBRegressor
+
+
+df = pd.read_excel('new_data.xlsx')
+X = df.drop(['Debit', 'Alloy'], axis=1)
+y = df['Debit']
+
+from sklearn.impute import SimpleImputer
+
+k = 7  # Number of top features to select
+
+model = Pipeline([
+    ('imputer', SimpleImputer(strategy='mean')), # Impute missing values
+    ('feature_select', SelectKBest(score_func=f_regression, k=k)),
+    ('scale', StandardScaler()),
+    ('xgb', XGBRegressor(
+        max_depth=2,
+        min_child_weight=5,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        reg_alpha=1.0,     # L1 regularization
+        reg_lambda=1.0,    # L2 regularization
+        n_estimators=50,
+        learning_rate=0.1,
+        verbosity=0
+    ))
+])
+
+loo = LeaveOneOut()
+scores = cross_val_score(model, X, y, cv=loo, scoring='neg_mean_squared_error')
+
+# Since scores are negative MSEs, take the absolute value
+mse_scores = -scores
+rmse_scores = np.sqrt(mse_scores)
+
+print(f"Mean RMSE (LOOCV): {rmse_scores.mean():.4f}")
+
+
+model.fit(X, y)
+
+# Get boolean mask of selected features
+selected_mask = model.named_steps['feature_select'].get_support()
+selected_features = X.columns[selected_mask]
+
+print("Selected features:", list(selected_features))
+
+
+from sklearn.linear_model import Ridge
+from sklearn.impute import SimpleImputer # Import SimpleImputer
+
+ridge_model = Pipeline([
+    ('imputer', SimpleImputer(strategy='mean')), # Add imputer
+    ('feature_select', SelectKBest(score_func=f_regression, k=5)),
+    ('scale', StandardScaler()),
+    ('ridge', Ridge(alpha=1.0))
+])
+
+scores = cross_val_score(ridge_model, X, y, cv=loo, scoring='neg_mean_squared_error')
+rmse = np.sqrt(-scores)
+
+print(f"Ridge Mean RMSE (LOOCV): {rmse.mean():.4f}")
+
+for k in range(2, 10):
+    model.set_params(feature_select__k=k)
+    scores = cross_val_score(model, X, y, cv=loo, scoring='neg_mean_squared_error')
+    rmse = np.sqrt(-scores)
+    print(f"k={k}: Mean RMSE={rmse.mean():.4f}")
+
+
+import pandas as pd
+
+# Define column headers for the dataset
+columns = [
+    "Sample ID", "Processing Method", "AM Type", "Build Orientation", "Laser Power (W)",
+    "Scan Speed (mm/s)", "HIP Temp (°C)", "Grain Size (µm)", "MTR (%)", "α/β Ratio",
+    "Dislocation Density (m⁻²)", "Nano-Hardness (GPa)", "m (Strain Rate Sensitivity)",
+    "n (Strain Hardening Exp.)", "Max Stress (MPa)", "Dwell Time (s)", "Test Temp (°C)",
+    "%Ti", "%Al", "%Sn", "%Zr", "%Mo", "%O", "Dwell Life (Cycles)", "Dwell Debit"
+]
+
+# Sample data rows (fictional examples)
+data = [
+    [1, "AM + HIP", "SLM", "90°", 300, 800, 920, 3.5, 12, "80:20", 5.0E13, 4.5, 0.025, 0.45, 850, 60, 300, 90, 5.5, 3.0, 1.5, 0.5, 0.2, 85000, 0.65],
+    [2, "Forged", "-", "-", None, None, None, 5.0, 20, "85:15", 3.0E13, 4.2, 0.015, 0.30, 800, 30, 300, 89, 5.8, 3.2, 1.6, 0.4, 0.15, 120000, 0.80],
+    [3, "AM", "EBM", "45°", 250, 700, None, 4.2, 15, "82:18", 4.2E13, 4.3, 0.020, 0.40, 870, 45, 300, 90, 5.6, 3.1, 1.4, 0.6, 0.18, 98000, 0.70]
+]
+
+# Create the DataFrame
+df = pd.DataFrame(data, columns=columns)
+
+# Save to Excel
+df.to_excel("dwell_fatigue_dataset_template.xlsx", index=False)
+
+
+# --- SHAP Analysis for Predicting 'Debit' ---
+import pandas as pd
+import shap
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+
+# 1️⃣ Load dataset
+file_path = "dwell_fatigue_dataset_template_new_syn.xlsx"   # <-- Replace with your actual path if needed
+df = pd.read_excel(file_path)
+
+# 2️⃣ Define target and features
+target_col = "Dwell Debit"
+X = df.select_dtypes(include=['number']).drop(columns=[target_col], errors='ignore')
+y = df[target_col]
+
+# 3️⃣ Split into train/test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 4️⃣ Standardize numeric features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 5️⃣ Train a regression model
+model = RandomForestRegressor(n_estimators=300, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# 6️⃣ Run SHAP analysis
+explainer = shap.Explainer(model, X_train_scaled)
+shap_values = explainer(X_test_scaled)
+
+# 7️⃣ SHAP summary plots
+print("✅ Generating SHAP feature importance plots...")
+
+# Beeswarm plot (shows impact of each feature)
+shap.summary_plot(shap_values, X_test, feature_names=X.columns)
+
+# Bar plot (mean absolute SHAP value per feature)
+shap.summary_plot(shap_values, X_test, feature_names=X.columns, plot_type="bar")
+
+# 8️⃣ Save SHAP values to Excel
+shap_df = pd.DataFrame(shap_values.values, columns=X.columns)
+output_file = "SHAP_feature_values_Debit.xlsx"
+shap_df.to_excel(output_file, index=False)
+
+print(f"\n✅ SHAP analysis for predicting 'Debit' completed.")
+print(f"📂 SHAP values saved to: {output_file}")
+
+
+# --- Combined PCA–SHAP Feature Importance Comparison ---
+import pandas as pd
+import numpy as np
+import shap
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# 1️⃣ Load dataset
+file_path = "new_data_syn.xlsx"   # <-- Replace if needed
+df = pd.read_excel(file_path)
+
+# 2️⃣ Define target and features
+target_col = "Debit"
+X = df.select_dtypes(include=['number']).drop(columns=[target_col], errors='ignore')
+y = df[target_col]
+
+# 3️⃣ Split and scale data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 4️⃣ Perform PCA (unsupervised feature variance)
+pca = PCA()
+pca.fit(X_scaled)
+pca_importance = np.sum(np.abs(pca.components_), axis=0)
+pca_importance = pca_importance / np.sum(pca_importance)  # normalize
+
+# 5️⃣ Train Random Forest model for SHAP
+model = RandomForestRegressor(n_estimators=300, random_state=42)
+model.fit(X_train, y_train)
+
+# 6️⃣ Compute SHAP values (supervised feature importance)
+explainer = shap.Explainer(model, X_train)
+shap_values = explainer(X_test)
+shap_importance = np.abs(shap_values.values).mean(axis=0)
+shap_importance = shap_importance / np.sum(shap_importance)  # normalize
+
+# 7️⃣ Combine PCA & SHAP importance
+importance_df = pd.DataFrame({
+    "Feature": X.columns,
+    "PCA Importance": pca_importance,
+    "SHAP Importance": shap_importance
+}).sort_values("SHAP Importance", ascending=False)
+
+print("\n✅ Combined PCA–SHAP importance summary:")
+print(importance_df.round(3))
+
+# 8️⃣ Visualization
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    data=importance_df,
+    x="PCA Importance",
+    y="SHAP Importance",
+    s=120,
+    color="royalblue"
+)
+for i, row in importance_df.iterrows():
+    plt.text(row["PCA Importance"] + 0.002, row["SHAP Importance"], row["Feature"], fontsize=9)
+plt.title("PCA vs SHAP Feature Importance (Predicting 'Debit')")
+plt.xlabel("PCA Importance (Variance Contribution)")
+plt.ylabel("SHAP Importance (Model Contribution to Debit)")
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
+
+# 9️⃣ Save results to Excel
+output_file = "Combined_PCA_SHAP_importance.xlsx"
+importance_df.to_excel(output_file, index=False)
+print(f"\n📂 Results saved to: {output_file}")
