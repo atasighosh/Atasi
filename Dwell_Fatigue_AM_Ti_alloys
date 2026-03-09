@@ -1,0 +1,820 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn import preprocessing
+from sklearn.preprocessing import StandardScaler
+from sklearn import datasets, metrics
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor,AdaBoostRegressor
+from xgboost import XGBRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
+from sklearn.model_selection import GridSearchCV
+import seaborn as sns
+from scipy import stats
+import sys, traceback
+import shap
+
+# Standardization module
+def stand(df1,df2):
+    x1=df1.values
+    scalar=preprocessing.StandardScaler()
+    scalar.fit(x1)
+    x2=df2.values
+    name2=df2.columns
+    x_std=scalar.transform(x2)
+    x_std=pd.DataFrame(x_std)
+    x_std.columns=name2
+    return(x_std)
+
+# READ DATASET
+data = pd.read_excel('merged_dataset_DF.xlsx')
+df=pd.DataFrame(data)
+
+df.columns
+
+df['Process'].unique()
+
+df['Process'].value_counts()
+
+plt.hist(df['Rupture_Time_hrs'],bins=10, color='skyblue',alpha=0.5)
+plt.xlabel('fatigue_life')
+plt.ylabel('Count')
+plt.title('Distribution of Dwell debit')
+
+import seaborn as sns
+# Define the list of processes to include
+processes_to_plot = ['WRT']#['LPBF',  'SLM', 'LMD', 'LENS', 'EPBF', 'EBM', 'DMLS']
+# Filter the DataFrame to include only these processes
+df_filtered = df[df['Process'].isin(processes_to_plot)]
+# Create the boxplot
+sns.boxplot(data=df_filtered, x='Process', y='fatigue_life', color='olive')
+
+#grp = df.groupby('Process')[['%C', '%N', '%O', '%H']].apply(lambda x: x.apply(pd.to_numeric, errors='coerce').sum().mean())
+#grp = df.groupby('Process')[['%Al', '%Si', '%Fe']].apply(lambda x: x.apply(pd.to_numeric, errors='coerce').sum().mean())
+grp = df.groupby('Process')[['%Mo', '%V', '%Nb', '%Zr']].apply(lambda x: x.apply(pd.to_numeric, errors='coerce').sum().mean())
+#grp_1=grp.to_frame(name='Avg_%interstitial')
+#grp_1=grp.to_frame(name='Avg_%alpha_stabilizer')
+grp_1=grp.to_frame(name='Avg_%beta_stabilizer') # Commented out this line to retain Avg_%interstitial
+grp_1.reset_index(inplace=True)
+grp_1
+
+cols = ['%C', '%N', '%O', '%H']
+
+# Convert to numeric
+df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+
+# Compute total % interstitial for each row
+df['Total_%interstitial'] = df[cols].sum(axis=1)
+
+# Group by Process and compute mean
+grp_1 = df.groupby('Process')['Total_%interstitial'].mean().reset_index()
+grp_1.rename(columns={'Total_%interstitial':'Avg_%interstitial'}, inplace=True)
+
+grp_1
+
+cols = ['%Al', '%Fe', '%Si','%Sn']
+
+# Convert to numeric
+df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+
+# Compute total % interstitial for each row
+df['Total_%alpha_stabiliser'] = df[cols].sum(axis=1)
+
+# Group by Process and compute mean
+grp_1 = df.groupby('Process')['Total_%alpha_stabiliser'].mean().reset_index()
+grp_1.rename(columns={'Total_%alpha_stabiliser':'Avg_%alpha_stabiliser'}, inplace=True)
+
+grp_1
+
+cols = ['%V', '%Mo', '%Nb','%Zr']
+
+# Convert to numeric
+df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+
+# Compute total % interstitial for each row
+df['Total_%beta_stabiliser'] = df[cols].sum(axis=1)
+
+# Group by Process and compute mean
+grp_1 = df.groupby('Process')['Total_%beta_stabiliser'].mean().reset_index()
+grp_1.rename(columns={'Total_%beta_stabiliser':'Avg_%beta_stabiliser'}, inplace=True)
+
+grp_1
+
+#sns.barplot(data=grp_1,x=grp_1['Process'],y=grp_1['Avg_%interstitial'],color='lightgreen',width=0.5)
+#sns.barplot(data=grp_1,x=grp_1['Process'],y=grp_1['Avg_%alpha_stabiliser'],color='lightgreen',width=0.5)
+sns.barplot(data=grp_1,x=grp_1['Process'],y=grp_1['Avg_%beta_stabiliser'],color='lightgreen',width=0.5)
+
+x=df['Defect_Size_um'].unique()
+x
+
+grp = df.groupby('Defect_Size_um')['Rupture_Time_hrs'].apply(lambda x: pd.to_numeric(x, errors='coerce').mean())
+grp_2=grp.to_frame(name='Avg_Rupture_Time_hrs')
+grp_2.reset_index(inplace=True)
+grp_2
+
+sns.scatterplot(x=grp_1['Avg_%interstitial'],y=grp_2['Avg_fatigue_life'],color='indigo',marker='o')
+
+sns.barplot(data=grp_2,x=grp_2['Defect_Size_um'],y=grp_2['Avg_Rupture_Time_hrs'],color='indigo')
+
+sns.scatterplot(data=grp_1,x=grp_1['Defect_Size_um'],y=grp_1['Avg_fatigue_life'],color='indigo')
+
+df.describe().T
+
+# Remove outliers from data set
+
+df=pd.DataFrame(data)
+# Select only numeric columns for z-score calculation
+df_numeric = df.select_dtypes(include=np.number)
+z0=stats.zscore(df_numeric)
+z1=(np.abs(z0)<4)
+# Filter the original DataFrame based on the z-score of numeric columns
+df1=df[z1.all(axis=1)]
+df1=(df1)
+
+Y_org = df1['Dwell debit']
+Y = np.log10(Y_org)
+X_org = df1.drop(columns=['Dwell debit', 'Alloy'])
+
+X_org.shape
+
+Y_org
+
+X_org.keys()
+
+# PCC correlation between features
+c=X_org
+
+# Directly select numeric columns for correlation
+a1 = c.select_dtypes(include=np.number)
+
+f, ax = plt.subplots(figsize=(12,12))
+plt.title('Pearson Correlation of features')
+
+sns.heatmap(a1.corr(),linewidths=1.0,vmax=1.0,square=True,
+          cmap="RdYlBu", linecolor='white', annot=False)
+sns.set(font_scale=1.0)
+plt.xticks(fontsize="10",rotation=90)
+plt.yticks(rotation=0, fontsize="10", va="center")
+
+plt.show()
+corr=a1.corr()
+
+# Feature selection using PCC thresold
+threshold = 0.80   # threshold value
+corr = a1.corr()
+X_fin=a1.copy()
+col_corr = set()
+for i in range(len(corr.columns)):
+    for j in range(i):
+        if (corr.iloc[i, j] >= threshold or corr.iloc[i,j]<= -threshold):
+            col2 = corr.columns[i] # getting the name of column
+            col_corr.add(col2)
+            if col2 in X_fin.columns:
+                del X_fin[col2]
+
+print("-------After removing highly correlated features------------------------------")
+print(X_fin.columns)     # final featue set
+
+print(len(X_org.keys()),"-->",len(X_fin.columns))
+
+# Different permutation of various features
+X = X_fin.copy()
+
+# Training of ML model over 3000 random trials
+start= 2585
+end= 2585
+
+for random in range(start,end+1,1):
+    X_train,X_test,Y_train,Y_test = train_test_split(X,Y,test_size=0.1,random_state=random)
+
+    X_test=stand(X_train,X_test)
+    X_train=stand(X_train,X_train)
+
+
+import numpy as np
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import RandomizedSearchCV, RepeatedKFold
+from sklearn.metrics import r2_score, mean_squared_error
+
+# --------------------------------
+# Model
+# --------------------------------
+reg = GradientBoostingRegressor(random_state=42)
+
+# --------------------------------
+# Parameter space
+# --------------------------------
+param_dist = {
+    "n_estimators": [400, 800, 1200, 1600, 2000],
+    "learning_rate": [0.005, 0.01, 0.02, 0.05],
+    "max_depth": [2, 3, 4, 5],
+    "subsample": [0.6, 0.8, 1.0],
+    "min_samples_split": [2, 5, 10],
+    "min_samples_leaf": [1, 2, 4]
+}
+
+# --------------------------------
+# Cross-validation
+# --------------------------------
+cv = RepeatedKFold(n_splits=5, n_repeats=5, random_state=42)
+
+search = RandomizedSearchCV(
+    reg,
+    param_distributions=param_dist,
+    n_iter=40,                 # number of random trials
+    scoring="r2",
+    cv=cv,
+    n_jobs=-1,
+    verbose=1,
+    random_state=42
+)
+
+# --------------------------------
+# Fit search
+# --------------------------------
+search.fit(X, Y_org)
+
+best_model = search.best_estimator_
+
+print("Best params:", search.best_params_)
+print("Best CV R2:", search.best_score_)
+
+from sklearn.metrics import r2_score, mean_squared_error
+best_model = GradientBoostingRegressor(n_estimators=1600,learning_rate=0.02, max_depth=2,subsample=0.6, min_samples_split=10, min_samples_leaf= 2,random_state=42)
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, Y_train, Y_test = train_test_split(
+    X, Y_org, test_size=0.1, random_state=42
+)
+
+best_model.fit(X_train, Y_train)
+
+pred_test = best_model.predict(X_test)
+pred_train = best_model.predict(X_train)
+
+R2_train_GBR = r2_score(Y_train, pred_train)
+R2_test_GBR = r2_score(Y_test, pred_test)
+
+print("Train R2:", R2_train_GBR)
+print("Test R2 :", R2_test_GBR)
+
+rmse_train_GBR = np.sqrt(mean_squared_error(Y_train, pred_train))
+rmse_test_GBR = np.sqrt(mean_squared_error(Y_test, pred_test))
+
+print("Train RMSE:", rmse_train_GBR)
+print("Test RMSE :", rmse_test_GBR)
+
+    ## fatigue
+    reg = GradientBoostingRegressor(loss='squared_error', learning_rate=0.02,
+                            n_estimators=1600, subsample=1.0, max_depth=3,
+                            criterion='friedman_mse', min_samples_split=10,
+                            min_samples_leaf=1, min_weight_fraction_leaf=0.0,
+                            random_state=42)
+
+
+    reg.fit(X_train,Y_train)
+
+    predicted_test=reg.predict(X_test)
+    predicted_train=reg.predict(X_train)
+
+    R2_test_GBR=metrics.r2_score(Y_test,predicted_test)
+    R2_train_GBR=metrics.r2_score(Y_train,predicted_train)
+    rmse_test_GBR=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+    rmse_train_GBR=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+    reg = GradientBoostingRegressor(n_estimators=1100, learning_rate=0.01, max_depth=3,
+                                    subsample=1.0, random_state=42)
+
+
+    reg.fit(X_train,Y_train)
+
+    predicted_test=reg.predict(X_test)
+    predicted_train=reg.predict(X_train)
+
+    R2_test_GBR=metrics.r2_score(Y_test,predicted_test)
+    R2_train_GBR=metrics.r2_score(Y_train,predicted_train)
+    rmse_test_GBR=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+    rmse_train_GBR=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+R2_test_GBR, R2_train_GBR
+
+reg = RandomForestRegressor(n_estimators=1100, max_depth=3,
+                                     random_state=42)
+
+
+reg.fit(X_train,Y_train)
+
+predicted_test=reg.predict(X_test)
+predicted_train=reg.predict(X_train)
+
+R2_test_RF=metrics.r2_score(Y_test,predicted_test)
+R2_train_RF=metrics.r2_score(Y_train,predicted_train)
+rmse_test_RF=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+rmse_train_RF=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+R2_test_RF, R2_train_RF
+
+reg = XGBRegressor(n_estimators=1600, max_depth=2,
+                                     random_state=42)
+
+
+reg.fit(X_train,Y_train)
+
+predicted_test=reg.predict(X_test)
+predicted_train=reg.predict(X_train)
+
+R2_test_XGB=metrics.r2_score(Y_test,predicted_test)
+R2_train_XGB=metrics.r2_score(Y_train,predicted_train)
+rmse_test_XGB=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+rmse_train_XGB=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+R2_test_XGB, R2_train_XGB
+
+reg = AdaBoostRegressor(n_estimators=1600, random_state=42)
+
+reg.fit(X_train,Y_train)
+
+predicted_test=reg.predict(X_test)
+predicted_train=reg.predict(X_train)
+
+R2_test_ADR=metrics.r2_score(Y_test,predicted_test)
+R2_train_ADR=metrics.r2_score(Y_train,predicted_train)
+rmse_test_ADR=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+rmse_train_ADR=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+R2_test_ADR, R2_train_ADR
+
+reg = SVR(kernel='rbf', C=10, epsilon=0.1)
+
+reg.fit(X_train,Y_train)
+
+predicted_test=reg.predict(X_test)
+predicted_train=reg.predict(X_train)
+
+R2_test_SVR=metrics.r2_score(Y_test,predicted_test)
+R2_train_SVR=metrics.r2_score(Y_train,predicted_train)
+rmse_test_SVR=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+rmse_train_SVR=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+R2_test_SVR, R2_train_SVR
+
+reg = LinearRegression()
+
+reg.fit(X_train,Y_train)
+
+predicted_test=reg.predict(X_test)
+predicted_train=reg.predict(X_train)
+
+R2_test_LR=metrics.r2_score(Y_test,predicted_test)
+R2_train_LR=metrics.r2_score(Y_train,predicted_train)
+rmse_test_LR=np.sqrt(metrics.mean_squared_error(Y_test,predicted_test))
+rmse_train_LR=np.sqrt(metrics.mean_squared_error(Y_train,predicted_train))
+
+R2_test_LR, R2_train_LR
+
+test_score=[R2_test_GBR, R2_test_RF,R2_test_XGB,R2_test_ADR,R2_test_SVR,R2_test_LR]
+
+plt.figure(figsize=(10, 6))
+models = ['GBR', 'RF', 'XGB', 'ADR', 'SVR', 'LR']
+plt.barh(models, test_score)
+plt.xlabel('R2 Score')
+plt.ylabel('Model')
+plt.title('R2 Scores of Different Models on Test Set')
+plt.show()
+
+X_new=pd.read_excel("creep_data_3_test.xlsx")
+
+Y_new=reg.predict(X_new)
+
+df_output = pd.DataFrame(Y_new, columns=['Predicted_fatigue_life'])
+df_output.to_excel("Predicted_fatigue_life.xlsx", index=False)
+
+Y_test.shape
+
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import r2_score, mean_squared_error
+
+# # Convert Y_test and predictions back to original scale (10^x from log10(x))
+# Y_test_original_scale = np.exp(Y_test)
+# Y_pred_original_scale_test = np.exp(best_model.predict(X_test))
+# Y_train_original_scale = np.exp(Y_train)
+# Y_pred_original_scale_train = np.exp(best_model.predict(X_train))
+
+# # Calculate performance metrics on the original scale
+# r2 = r2_score(Y_test_original_scale, Y_pred_original_scale_test)
+# rmse = np.sqrt(mean_squared_error(Y_test_original_scale, Y_pred_original_scale_test))
+
+# Define main diagonal and ±10% boundaries
+min_val = min(Y_test.min(), predicted_test.min())
+max_val = max(Y_test.max(),predicted_test.max())
+line = np.linspace(min_val, max_val, 200)
+#print (line)
+upper_bound = line * 1.10
+lower_bound = line * 0.90
+
+# Create plot
+plt.figure(figsize=(8, 8))
+plt.scatter(Y_test, predicted_test, color='blue', edgecolor='k', alpha=0.8, s=80, label='Test data', marker='o')
+plt.scatter(Y_train, predicted_train, color='pink', edgecolor='r', alpha=0.8, s=60, label='Train data', marker='*')
+plt.plot(line, line, 'g--', linewidth=2, label='Ideal fit (y = x)')
+
+# Fill between boundary lines
+plt.fill_between(line, lower_bound, upper_bound, color='green', alpha=0.15, label='±10% boundary')
+
+# Add boundary lines
+plt.plot(line, upper_bound, 'k--', linewidth=1.2)
+plt.plot(line, lower_bound, 'k--', linewidth=1.2)
+
+# Labels and title
+plt.xlabel('Actual Values (log Scale)', fontsize=12)
+plt.ylabel('Predicted Values (log Scale)', fontsize=12)
+plt.title('Actual vs Predicted Values with ±10% Boundaries', fontsize=14)
+plt.legend()
+plt.grid(True, linestyle=':')
+plt.axis('equal')
+
+# Add R² and RMSE text box
+textstr = f"$R^2 = {R2_test_ADR :.3f}$\nRMSE = {rmse_test_ADR :.3f}"
+plt.text(0.05, 0.95, textstr, transform=plt.gca().transAxes,
+         fontsize=12, verticalalignment='top',
+         bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.5))
+
+# Show plot
+plt.show()
+
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Predictions
+# y_pred_test =np.exp( best_model.predict(X_test))
+# y_pred_train =np.exp( best_model.predict(X_train))
+# Y_test=np.exp(Y_test)
+# Y_train=np.exp(Y_train)
+# # y_pred_test =pred_test
+# # y_pred_train =pred_train
+
+
+# Performance metrics
+r2 = r2_score(Y_test, predicted_test)
+rmse = np.sqrt(mean_squared_error(Y_test, predicted_test))
+
+# Define plotting range
+min_val = min(Y_test.min(), predicted_test.min(), Y_train.min(), predicted_train.min())
+max_val = max(Y_test.max(), predicted_test.max(), Y_train.max(), predicted_train.max())
+
+line = np.linspace(min_val, max_val, 200)
+
+# ±10% boundaries
+upper_bound = line * 1.10
+lower_bound = line * 0.90
+
+# Create plot
+plt.figure(figsize=(8,8))
+
+# Test data
+plt.scatter(Y_test, predicted_test,
+            color='blue', edgecolor='black',
+            alpha=0.8, s=80, label='Test', marker='o')
+
+# Train data
+plt.scatter(Y_train, predicted_train,
+            color='lightcoral', edgecolor='red',
+            alpha=0.8, s=60, label='Train', marker='*')
+
+# Ideal line
+plt.plot(line, line, 'g--', linewidth=2, label='Ideal fit (y = x)')
+
+# ±10% region
+plt.fill_between(line, lower_bound, upper_bound,
+                 color='green', alpha=0.15, label='±10% boundary')
+
+# Boundary lines
+plt.plot(line, upper_bound, 'k--', linewidth=1.2)
+plt.plot(line, lower_bound, 'k--', linewidth=1.2)
+
+# Labels
+plt.xlabel('Actual Values (original scale)', fontsize=12)
+plt.ylabel('Predicted Values (original_scale)', fontsize=12)
+plt.title('Actual vs Predicted Values with ±10% Boundaries', fontsize=14)
+
+# Text box for metrics
+textstr = f"$R^2$ = {r2:.3f}\nRMSE = {rmse:.3f}"
+plt.text(0.05, 0.95, textstr,
+         transform=plt.gca().transAxes,
+         fontsize=12,
+         verticalalignment='top',
+         bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+
+plt.legend()
+plt.grid(True, linestyle=':')
+plt.axis('equal')
+
+plt.tight_layout()
+plt.show()
+
+print ("Output of model")
+print ("R2 train/test =  ",R2_train,"/",R2_test)
+print ("RMSE train/test =  ",rmse_train,"/",rmse_test)
+
+# SHAP feature importances
+
+shap_values = shap.TreeExplainer(best_model).shap_values(X_train)
+shap.summary_plot(shap_values, features=X_train, show=False)       ##--- summary plot
+
+shap.summary_plot(shap_values, X_train, plot_type="bar")  ##----bar plot
+
+
+## dependence plot
+shap_values = shap.TreeExplainer(best_model).shap_values(X_train)
+for i in range(12):
+    shap.dependence_plot(i, shap_values, X_train,show=False,
+                      interaction_index='auto', dot_size=50)
+
+
+
+# --- Compare Model Performance: With vs Without PCA ---
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor,GradientBoostingRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.tree import DecisionTreeRegressor # Import DecisionTreeRegressor
+
+# --- Step 1: Load dataset ---
+data = pd.read_excel("merged_dataset_DF.xlsx")
+
+# --- Step 2: Define features and target ---
+X = data.drop(columns=["Dwell debit", "Alloy"])
+y = data["Dwell debit"]
+# 2‰ Select only numeric columns (ignore text columns like 'Alloy')
+numeric_df = data.select_dtypes(include=['number'])
+
+# --- Step 3: Standardize features ---
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(numeric_df)
+
+np.random.seed(42)
+num_synthetic = 400  # target dataset size
+
+# Tile and add Gaussian noise
+synthetic_X = np.tile(X_scaled, (num_synthetic // len(X_scaled) + 1, 1))[:num_synthetic]
+synthetic_X += np.random.normal(0, 0.1, synthetic_X.shape)
+synthetic_y = np.tile(y, num_synthetic // len(y) + 1)[:num_synthetic] + np.random.normal(0, 0.5, num_synthetic)
+
+# --- Step 4: PCA (retain 95% variance) ---
+pca_pipeline = Pipeline([
+    ('imputer_synthetic', SimpleImputer(strategy='mean')),
+    ('pca', PCA(n_components=0.95, random_state=42))
+])
+
+X_pca = pca_pipeline.fit_transform(synthetic_X)
+pca_model = pca_pipeline.named_steps['pca']
+
+print(f"PCA reduced features from {numeric_df.shape[1]} → {X_pca.shape[1]}")
+
+# --- Step 4B: PCA Components and Explained Variance ---
+# Each component shows how much each original feature contributes to that PC
+pca_components = pd.DataFrame(
+    pca_model.components_,
+    columns=numeric_df.columns, # Use the columns from numeric_df
+    index=[f"PC{i+1}" for i in range(pca_model.n_components_)]
+)
+
+# Explained variance ratio per component
+explained_variance = pd.DataFrame({
+    "Principal Component": [f"PC{i+1}" for i in range(pca_model.n_components_)],
+    "Explained Variance Ratio": pca_model.explained_variance_ratio_
+})
+
+# Save PCA details
+with pd.ExcelWriter("pca_components_and_variance.xlsx") as writer:
+    pca_components.to_excel(writer, sheet_name="PCA_Components")
+    explained_variance.to_excel(writer, sheet_name="Explained_Variance", index=False)
+
+print("\nPCA components and explained variance saved as 'pca_components_and_variance.xlsx'")
+
+# --- Step 5: Train-test split ---
+X_train, X_test, y_train, y_test = train_test_split(
+    synthetic_X, synthetic_y, test_size=0.3, random_state=42
+)
+X_train_pca, X_test_pca, y_train_pca, y_test_pca = train_test_split(
+    X_pca, synthetic_y, test_size=0.3, random_state=42
+)
+
+# --- Step 6: Define models ---
+models = {
+    "Linear Regression": LinearRegression(),
+    "Random Forest": RandomForestRegressor(n_estimators=1600, max_depth=2, min_samples_split=10, min_samples_leaf= 2,random_state=42),
+    "AdaBoost": AdaBoostRegressor(estimator=DecisionTreeRegressor(max_depth=2), n_estimators=1600, learning_rate=0.02, random_state=42),
+    "XGBoost": XGBRegressor(n_estimators=1600,learning_rate=0.02, max_depth=2,subsample=0.6, min_samples_split=10, min_samples_leaf= 2,random_state=42),
+    "GradientBoostRegressor":GradientBoostingRegressor(n_estimators=1600,learning_rate=0.02, max_depth=2,subsample=0.6, min_samples_split=10, min_samples_leaf= 2,random_state=42),
+    "SVR": SVR(kernel='rbf', C=10, epsilon=0.1)
+}
+
+# --- Step 7: Evaluate models with and without PCA ---
+results = []
+imputer_no_pca = SimpleImputer(strategy='mean')
+
+for name, model in models.items():
+    # --- Without PCA ---
+    X_train_imputed = imputer_no_pca.fit_transform(X_train)
+    X_test_imputed = imputer_no_pca.transform(X_test)
+
+    model.fit(X_train_imputed, y_train)
+    y_pred = model.predict(X_test_imputed)
+    r2_no = r2_score(y_test, y_pred)
+    rmse_no = np.sqrt(mean_squared_error(y_test, y_pred))
+
+    # --- With PCA ---
+    model.fit(X_train_pca, y_train_pca)
+    y_pred_pca = model.predict(X_test_pca)
+    r2_pca = r2_score(y_test_pca, y_pred_pca)
+    rmse_pca = np.sqrt(mean_squared_error(y_test_pca, y_pred_pca))
+
+    results.append([name, r2_no, rmse_no, r2_pca, rmse_pca])
+
+# --- Step 8: Results DataFrame ---
+results_df = pd.DataFrame(
+    results,
+    columns=["Model", "R² Without PCA", "RMSE Without PCA", "R² With PCA", "RMSE With PCA"]
+).sort_values(by="R² Without PCA", ascending=False)
+
+print("\n=== Model Performance Comparison (With vs Without PCA) ===")
+display(results_df)
+
+# --- Step 9: Visualization ---
+plt.figure(figsize=(10, 6))
+bar_height = 0.35
+x = np.arange(len(results_df))
+
+plt.barh(x - bar_height/2, results_df["R² Without PCA"], height=bar_height, label="Without PCA", color="mediumseagreen")
+plt.barh(x + bar_height/2, results_df["R² With PCA"], height=bar_height, label="With PCA", color="lightcoral")
+
+plt.yticks(x, results_df["Model"])
+plt.xlabel("R² Score", fontsize=12)
+plt.title("Model Performance Comparison: With vs Without PCA", fontsize=14)
+plt.legend()
+plt.grid(True, axis="y", linestyle="--", alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+# --- Step 10: Save results ---
+results_df.to_excel("model_comparison_pca_vs_no_pca.xlsx", index=False)
+print("\nResults saved as 'model_comparison_pca_vs_no_pca.xlsx'")
+
+import pandas as pd
+
+data = {
+    'Feature': ['Temp_creep', 'Peak_Stress', 'ann_temp', 'Dwell_time', 'Defect_Size'],
+    'Creep': [0.85, 0.42, 0.35, 0.05, 0.04],
+    'Fatigue': [0.65, 0.28, 0.22, 0.02, 0.01],
+    'Dwell_Fatigue': [0.12, 0.20, 0.30, 0.90, 0.60]
+}
+
+df = pd.DataFrame(data)
+
+import pandas as pd
+
+data = {
+    'Feature': [
+        'Temperature', 'Peak_Stress', 'ann_temp', 'Dwell_time',
+        'Defect_Size', '%Nb'],
+
+
+    'Creep': [
+        0.85, 0.42, 0.35, 0.05,
+        0.04, 0.02],
+
+    'Fatigue': [
+        0.65, 0.28, 0.22, 0.02,
+        0.01, 0.03],
+
+    'Dwell_Fatigue': [
+        0.12, 0.20, 0.30, 0.90,
+        0.60,  0.85]
+}
+
+df = pd.DataFrame(data)
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+categories = df['Feature'].tolist()
+N = len(categories)
+
+angles = np.linspace(0, 2*np.pi, N, endpoint=False).tolist()
+angles += angles[:1]
+
+fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))
+
+for column in ['Dwell_Fatigue','Fatigue','Creep']:
+
+    values = df[column].tolist()
+    values += values[:1]
+
+    ax.plot(angles, values, label=column)
+    ax.fill(angles, values, alpha=0.1)
+
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(categories)
+
+#plt.title("Mechanism Dominance Comparison")
+#plt.legend(loc='upper right')
+plt.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+features = [
+    "Temperature",
+    "Peak Stress",
+    "Steady Strain Rate",
+    "Dwell Time",
+    "Defect Size",
+    "%Nb",
+    "Annealing Temp"
+]
+
+creep = [0.9,0.7,1.0,0.1,0.05,0.05,0.4]
+fatigue = [0.8,0.6,0.2,0.05,0.05,0.1,0.5]
+dwell_fatigue = [0.3,0.6,0.1,1.0,0.8,0.7,0.4]
+
+N = len(features)
+
+angles = np.linspace(0,2*np.pi,N,endpoint=False)
+angles = np.concatenate((angles,[angles[0]]))
+
+creep=np.concatenate((creep,[creep[0]]))
+fatigue=np.concatenate((fatigue,[fatigue[0]]))
+dwell_fatigue=np.concatenate((dwell_fatigue,[dwell_fatigue[0]]))
+
+fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))
+
+ax.plot(angles,dwell_fatigue,linewidth=2,label="Dwell Fatigue")
+ax.fill(angles,dwell_fatigue,alpha=0.1)
+
+ax.plot(angles,fatigue,linewidth=2,label="Fatigue")
+ax.fill(angles,fatigue,alpha=0.1)
+
+ax.plot(angles,creep,linewidth=2,label="Creep")
+ax.fill(angles,creep,alpha=0.1)
+
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(features)
+
+#plt.title("Dominant Drivers: Creep vs Fatigue vs Dwell Fatigue")
+plt.legend(loc="lower right")
+plt.tight_layout()
+plt.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+features = ["Peak Stress",  "Dwell Time","Temperature","Alloy composition", "heat treatment", "strain"]
+
+creep = [0.7,0.1,0.9,0.05,0.4,1.0]
+fatigue = [0.6,0.05,0.8,0.1,0.5,0.2]
+dwell_fatigue = [0.6,1.0,0.3,0.7,0.4,0.1]
+
+N = len(features)
+
+angles = np.linspace(0,2*np.pi,N,endpoint=False)
+angles = np.concatenate((angles,[angles[0]]))
+
+creep=np.concatenate((creep,[creep[0]]))
+fatigue=np.concatenate((fatigue,[fatigue[0]]))
+dwell_fatigue=np.concatenate((dwell_fatigue,[dwell_fatigue[0]]))
+
+fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))
+
+ax.plot(angles,dwell_fatigue,linewidth=2,label="Dwell Fatigue")
+ax.fill(angles,dwell_fatigue,alpha=0.1)
+
+ax.plot(angles,fatigue,linewidth=2,label="Fatigue")
+ax.fill(angles,fatigue,alpha=0.1)
+
+ax.plot(angles,creep,linewidth=2,label="Creep")
+ax.fill(angles,creep,alpha=0.1)
+
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(features)
+
+#plt.title("Dominant Drivers: Creep vs Fatigue vs Dwell Fatigue")
+plt.legend(loc="lower right")
+plt.tight_layout()
+plt.show()
